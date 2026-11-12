@@ -18,28 +18,43 @@ def get_random_word(url: str) -> str:
 def get_underscore_indices(guess_word: str) -> list[int]:
     return [i for i, chr in enumerate(guess_word) if chr == '_']
 
-def generate_hint(guess_word: str, secret_word: str) -> str:
-    hint_word = list(guess_word)
-    word_length = len(hint_word)
+def generate_hint(guess_word: str, secret_word: str) -> list:
+    hint_list = []
+    guess_word_list = guess_word
+    word_length = len(guess_word_list)
     if word_length < 2:
-        return guess_word
+        return hint_list
 
     underscore_indices = get_underscore_indices(guess_word)
 
     underscore_num = len(underscore_indices)
 
     if underscore_num < 3:
-        return guess_word
+        return hint_list
 
     sample_size = 5 if underscore_num > 10 else (3 if underscore_num > 5 else 2)
 
     hint_sample = random.sample(underscore_indices, k=sample_size)
 
     for hint in hint_sample:
-        hint_word[hint] = secret_word[hint]
+        hint_list.append(secret_word[hint])
 
-    return "".join(hint_word)
+    return hint_list
 
+def get_user_input(display_string: str, interruption_string: str) -> str:
+    try:
+        user_input = input(display_string).strip().lower()
+        return user_input
+    except (KeyboardInterrupt, EOFError):
+        print(f"\n{interruption_string}")
+        sys.exit(0)
+
+def update_display_word(display_word: list[str], guessed_letters: set[str], secret_word: str):
+    for letter in secret_word:
+        if letter in guessed_letters:
+            display_word.append(letter)
+        else:
+            display_word.append('_')
 
 
 def play_game():
@@ -50,17 +65,13 @@ def play_game():
     secret_word = get_random_word(URL)
     word_length = len(secret_word)
 
-    guessed_letter = set()
+    guessed_letters = set()
     lives = 6
 
-    display_word = []
-
     while lives > 0:
-        for letter in secret_word:
-            if letter in guessed_letter:
-                display_word.append(letter)
-            else:
-                display_word.append('_')
+        display_word = []
+
+        update_display_word(display_word, guessed_letters, secret_word)
 
         if '_' not in display_word:
             print(f"\n🎉 Congratulations! You guessed the word: {secret_word.upper()}!")
@@ -70,13 +81,44 @@ def play_game():
         print(f"\nWord: {current_word}")
         print(f"lives remaining: {lives}")
 
-        guess = input("Guess a letter(or full word): ").strip().lower()
+        if lives == 2:
 
-        if guess == secret_word:
-            print("")
+            print(f"\n💡Need a hint, Here's a letter map hint: {generate_hint(current_word, secret_word)}")
+
+        guess = get_user_input("Guess a letter(or the whole word): ", "Game abandoned 🥲 Goodbye!")
+
+        if len(guess) > 1:
+            if guess == secret_word:
+                print(f"\n🎉 Amazing guess! The word was indeed: {secret_word.upper()}!")
+                return
+            else:
+                print(f"❌ '{guess}' is not the secret word!")
+                lives -= 1
+                continue
+
+        if guess in guessed_letters:
+            print(f"⚠️ You already guessed the letter '{guess}'. Try a different one.")
+            continue
+
+        guessed_letters.add(guess)
+
+        if guess in secret_word:
+            print(f"✅ Nice! '{guess}' is in the word.""")
+        else:
+            print(f"❌ Sorry, '{guess}' is not in the word.")
+            lives -= 1
+
+    print(f"\n💥 Game Over! You ran out of lives. The word was: {secret_word.upper()}")
 
 if __name__ == "__main__":
-    pass
+    while True:
+        play_game()
+        print('-' * 40)
+        play_again = get_user_input("Play again?(Y/n) ", "Have a good day 😁")
+
+        if not play_again:
+            print("Thanks for playing 😊")
+            break
 
 """
 import sys
